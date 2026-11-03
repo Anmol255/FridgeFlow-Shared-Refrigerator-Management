@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Fridge Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #171717;
+      --muted: #6b6b6b;
+      --line: #dedede;
+      --surface: #ffffff;
+      --canvas: #f6f6f4;
+      --soft: #efefed;
+      --dark: #191919;
+      --radius: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 28px 34px 44px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding: 3px 0 25px; border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:14px; }
+    .brand-mark { width:42px; height:42px; display:grid; place-items:center; border:1.5px solid var(--ink); border-radius:13px; font-size:20px; font-weight:750; }
+    .brand h1 { margin:0; font-size:20px; letter-spacing:-.04em; }
+    .brand p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+    .header-actions { display:flex; align-items:center; gap:12px; }
+    .demo-chip { border:1px solid var(--line); background:#fff; padding:8px 11px; border-radius:999px; font-size:12px; color:#555; }
+    .button { border:1px solid var(--ink); background:var(--dark); color:white; padding:11px 15px; border-radius:10px; font-weight:650; font-size:13px; transition:transform .15s, background .15s; }
+    .button:hover { background:#333; transform:translateY(-1px); }
+    .button.secondary { color:var(--ink); background:white; }
+    .button.secondary:hover { background:var(--soft); }
+    .intro { display:flex; justify-content:space-between; align-items:flex-end; gap:30px; padding:31px 0 24px; }
+    .intro h2 { margin:0; font-size:clamp(28px,3vw,38px); line-height:1.08; letter-spacing:-.055em; }
+    .intro p { max-width:620px; margin:10px 0 0; color:var(--muted); line-height:1.5; font-size:14px; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+    .metric { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; min-height:106px; }
+    .metric-top { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; }
+    .metric-mark { width:26px; height:26px; display:grid; place-items:center; border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:12px; }
+    .metric strong { display:block; font-size:29px; letter-spacing:-.05em; margin-top:9px; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 310px; align-items:start; gap:18px; }
+    .panel { background:white; border:1px solid var(--line); border-radius:var(--radius); }
+    .panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; padding:20px 21px 15px; }
+    .panel-head h3 { margin:0; font-size:17px; letter-spacing:-.025em; }
+    .panel-head p { margin:5px 0 0; font-size:12px; color:var(--muted); }
+    .search { width:205px; border:1px solid var(--line); border-radius:9px; padding:10px 12px; outline:none; font-size:12px; }
+    .search:focus, input:focus, select:focus { border-color:#777; box-shadow:0 0 0 3px #0000000d; }
+    .filters { display:flex; gap:7px; padding:0 20px 15px; flex-wrap:wrap; }
+    .filter { padding:8px 11px; background:white; border:1px solid var(--line); border-radius:999px; color:#555; font-size:12px; }
+    .filter[aria-pressed="true"] { background:var(--dark); color:white; border-color:var(--dark); }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; width:100%; min-width:650px; }
+    th { color:#777; font-size:10px; font-weight:700; letter-spacing:.08em; text-align:left; text-transform:uppercase; padding:11px 16px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    td { padding:14px 16px; border-bottom:1px solid #ededed; font-size:12px; vertical-align:middle; }
+    tbody tr:last-child td { border-bottom:0; }
+    .food-name { font-weight:650; font-size:13px; }
+    .food-sub { display:block; margin-top:4px; color:var(--muted); font-size:11px; }
+    .tag { display:inline-flex; align-items:center; border:1px solid #d8d8d8; background:#f7f7f7; border-radius:999px; padding:5px 8px; font-size:10px; color:#333; white-space:nowrap; }
+    .tag.dark { background:#202020; color:white; border-color:#202020; }
+    .remove { background:none; border:0; color:#777; text-decoration:underline; font-size:11px; padding:3px; }
+    .remove:hover { color:#111; }
+    .empty { display:none; padding:38px 20px; text-align:center; color:var(--muted); font-size:13px; }
+    .side { display:grid; gap:18px; }
+    .zone-list { padding:0 20px 18px; }
+    .zone { padding:14px 0; border-top:1px solid #eee; }
+    .zone:first-child { border-top:0; }
+    .zone-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:650; }
+    .zone-row span:last-child { color:var(--muted); font-size:11px; font-weight:500; }
+    .zone-note { margin-top:5px; color:var(--muted); font-size:11px; }
+    .guide { padding:0 20px 18px; }
+    .guide-step { display:grid; grid-template-columns:25px 1fr; gap:11px; padding:12px 0; border-top:1px solid #eee; }
+    .guide-step:first-child { border-top:0; }
+    .number { width:23px; height:23px; border:1px solid #ccc; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:650; }
+    .guide-step strong { display:block; font-size:12px; }
+    .guide-step p { margin:4px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+    .note { margin:18px 0 0; color:#777; font-size:11px; line-height:1.5; }
+    dialog { width:min(440px,calc(100vw - 28px)); border:1px solid var(--line); border-radius:16px; padding:0; box-shadow:0 24px 80px #0002; }
+    dialog::backdrop { background:#0006; }
+    .dialog-head { padding:20px 22px 13px; border-bottom:1px solid var(--line); }
+    .dialog-head h3 { margin:0; font-size:18px; }
+    .dialog-head p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    form { padding:18px 22px 22px; display:grid; gap:13px; }
+    label { display:grid; gap:6px; font-size:12px; font-weight:650; }
+    input, select { width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:9px; outline:none; background:white; font-size:13px; }
+    .form-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:6px; }
+    @media (max-width:980px) { .layout { grid-template-columns:1fr; } .side { grid-template-columns:1fr 1fr; } }
+    @media (max-width:700px) { .shell { padding:18px 15px 30px; } header { align-items:flex-start; } .header-actions { flex-direction:column-reverse; align-items:flex-end; gap:8px; } .demo-chip { font-size:10px; } .intro { align-items:flex-start; flex-direction:column; padding-top:24px; } .metrics { grid-template-columns:repeat(2,1fr); gap:9px; } .metric { padding:14px; min-height:94px; } .metric strong { font-size:25px; } .panel-head { flex-direction:column; } .search { width:100%; } .side { grid-template-columns:1fr; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">SF</div>
+        <div><h1>Shared Fridge</h1><p>Hostel kitchen · Prototype 2</p></div>
+      </div>
+      <div class="header-actions">
+        <span class="demo-chip">SAMPLE DATA</span>
+        <button class="button" id="openAdd">＋ Add food item</button>
+      </div>
+    </header>
+
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <h2 id="pageTitle">Less searching.<br>Clearer shared storage.</h2>
+        <p>See what is in the fridge, where it belongs, and which items to check first. Use the labels and date tags to keep the shared kitchen easy to navigate.</p>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Fridge summary">
+      <article class="metric"><div class="metric-top">Items listed <span class="metric-mark">≡</span></div><strong id="countAll">0</strong></article>
+      <article class="metric"><div class="metric-top">VEG <span class="metric-mark">V</span></div><strong id="countVeg">0</strong></article>
+      <article class="metric"><div class="metric-top">NON-VEG <span class="metric-mark">N</span></div><strong id="countNonveg">0</strong></article>
+      <article class="metric"><div class="metric-top">Check soon <span class="metric-mark">!</span></div><strong id="countSoon">0</strong></article>
+    </section>
+
+    <main class="layout">
+      <section class="panel" aria-labelledby="inventoryTitle">
+        <div class="panel-head">
+          <div><h3 id="inventoryTitle">Fridge inventory</h3><p>Owner and stored-on date are shown on each item.</p></div>
+          <input class="search" id="search" type="search" placeholder="Search food or owner" aria-label="Search food or owner">
+        </div>
+        <nav class="filters" aria-label="Filter items">
+          <button class="filter" data-filter="ALL" aria-pressed="true">All items</button>
+          <button class="filter" data-filter="VEG" aria-pressed="false">VEG</button>
+          <button class="filter" data-filter="NON-VEG" aria-pressed="false">NON-VEG</button>
+          <button class="filter" data-filter="SHARED" aria-pressed="false">Shared</button>
+          <button class="filter" data-filter="SOON" aria-pressed="false">USE SOON</button>
+        </nav>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Food item</th><th>Zone</th><th>Owner</th><th>Stored on</th><th>Status</th><th></th></tr></thead>
+            <tbody id="inventory"></tbody>
+          </table>
+          <div class="empty" id="emptyState">No matching items. Try another filter or add an item.</div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel" aria-labelledby="zonesTitle">
+          <div class="panel-head"><div><h3 id="zonesTitle">Storage zones</h3><p>Match labels to the actual fridge shelves.</p></div></div>
+          <div class="zone-list" id="zoneList"></div>
+        </section>
+        <section class="panel" aria-labelledby="guideTitle">
+          <div class="panel-head"><div><h3 id="guideTitle">Quick guide</h3><p>Make the routine easy to follow.</p></div></div>
+          <div class="guide">
+            <div class="guide-step"><span class="number">1</span><div><strong>Choose a zone</strong><p>Use VEG, NON-VEG or SHARED labels.</p></div></div>
+            <div class="guide-step"><span class="number">2</span><div><strong>Add a date tag</strong><p>Write owner initials and the stored-on date.</p></div></div>
+            <div class="guide-step"><span class="number">3</span><div><strong>Check USE SOON</strong><p>Look here first and follow the shared kitchen routine.</p></div></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+    <p class="note">Prototype dashboard with fictional sample items. Confirm local food-storage and clean-out rules with residents; this dashboard does not determine food safety.</p>
+  </div>
+
+  <dialog id="addDialog" aria-labelledby="dialogTitle">
+    <div class="dialog-head"><h3 id="dialogTitle">Add a fridge item</h3><p>Use a tag on the container too, so others can identify it.</p></div>
+    <form id="addForm">
+      <label>Food item<input name="name" required maxlength="60" placeholder="e.g. Vegetable curry"></label>
+      <label>Zone<select name="zone" required><option value="VEG">VEG</option><option value="NON-VEG">NON-VEG</option><option value="SHARED">SHARED</option></select></label>
+      <label>Owner initials<input name="owner" required maxlength="8" placeholder="e.g. AK"></label>
+      <label>Stored on<input name="date" type="date" required></label>
+      <div class="form-actions"><button class="button secondary" type="button" id="cancelAdd">Cancel</button><button class="button" type="submit">Add to fridge</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    const STORE_KEY = 'shared-fridge-prototype-items-v1';
+    const sampleItems = [
+      { id: 'a1', name: 'Paneer curry', detail: 'Container · sealed', zone: 'VEG', owner: 'KK', date: '2026-10-20' },
+      { id: 'a2', name: 'Chicken pulao', detail: 'Lunch box', zone: 'NON-VEG', owner: 'AS', date: '2026-10-19' },
+      { id: 'a3', name: 'Milk carton', detail: 'Shared item', zone: 'SHARED', owner: 'ALL', date: '2026-10-21' },
+      { id: 'a4', name: 'Cut vegetables', detail: 'Reusable container', zone: 'VEG', owner: 'SB', date: '2026-10-22' },
+      { id: 'a5', name: 'Egg curry', detail: 'Container · sealed', zone: 'NON-VEG', owner: 'MJ', date: '2026-10-18' },
+      { id: 'a6', name: 'Yogurt cups', detail: 'Shared item', zone: 'SHARED', owner: 'ALL', date: '2026-10-20' },
+    ];
+    let items;
+    try { items = JSON.parse(localStorage.getItem(STORE_KEY)) || sampleItems; }
+    catch { items = sampleItems; }
+    let activeFilter = 'ALL';
+    let query = '';
+    const inventory = document.getElementById('inventory');
+    const emptyState = document.getElementById('emptyState');
+    const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
+    function dayAge(dateString) {
+      const date = new Date(`${dateString}T00:00:00`);
+      return Math.floor((new Date().setHours(0,0,0,0) - date.getTime()) / 86400000);
+    }
+    function statusFor(item) { return dayAge(item.date) >= 2 ? 'USE SOON' : 'Freshly added'; }
+    function escapeHtml(text) { return String(text).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function render() {
+      const soon = items.filter(item => statusFor(item) === 'USE SOON').length;
+      document.getElementById('countAll').textContent = items.length;
+      document.getElementById('countVeg').textContent = items.filter(i => i.zone === 'VEG').length;
+      document.getElementById('countNonveg').textContent = items.filter(i => i.zone === 'NON-VEG').length;
+      document.getElementById('countSoon').textContent = soon;
+      const shown = items.filter(item => {
+        const matchesFilter = activeFilter === 'ALL' || (activeFilter === 'SOON' ? statusFor(item) === 'USE SOON' : item.zone === activeFilter);
+        const matchesQuery = `${item.name} ${item.owner} ${item.zone}`.toLowerCase().includes(query.toLowerCase());
+        return matchesFilter && matchesQuery;
+      });
+      inventory.innerHTML = shown.map(item => `<tr>
+        <td><span class="food-name">${escapeHtml(item.name)}</span><span class="food-sub">${escapeHtml(item.detail || 'Container')}</span></td>
+        <td><span class="tag ${item.zone === 'NON-VEG' ? 'dark' : ''}">${escapeHtml(item.zone)}</span></td>
+        <td>${escapeHtml(item.owner)}</td>
+        <td>${dateFmt.format(new Date(`${item.date}T00:00:00`))}</td>
+        <td><span class="tag ${statusFor(item) === 'USE SOON' ? 'dark' : ''}">${statusFor(item)}</span></td>
+        <td><button class="remove" data-remove="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)}">Remove</button></td>
+      </tr>`).join('');
+      emptyState.style.display = shown.length ? 'none' : 'block';
+      document.getElementById('zoneList').innerHTML = ['VEG','NON-VEG','SHARED'].map(zone => {
+        const count = items.filter(item => item.zone === zone).length;
+        const note = zone === 'SHARED' ? 'Common items and agreed shared food' : `${zone === 'VEG' ? 'Vegetarian' : 'Non-vegetarian'} items`;
+        return `<div class="zone"><div class="zone-row"><span>${zone}</span><span>${count} ${count === 1 ? 'item' : 'items'}</span></div><div class="zone-note">${note}</div></div>`;
+      }).join('');
+      localStorage.setItem(STORE_KEY, JSON.stringify(items));
+    }
+    document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
+      activeFilter = button.dataset.filter;
+      document.querySelectorAll('.filter').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+      render();
+    }));
+    document.getElementById('search').addEventListener('input', event => { query = event.target.value; render(); });
+    inventory.addEventListener('click', event => {
+      const id = event.target.dataset.remove;
+      if (!id) return;
+      items = items.filter(item => item.id !== id);
+      render();
+    });
+    const dialog = document.getElementById('addDialog');
+    document.getElementById('openAdd').addEventListener('click', () => {
+      const dateInput = document.querySelector('input[name="date"]');
+      dateInput.value = new Date().toISOString().slice(0,10);
+      dialog.showModal();
+    });
+    document.getElementById('cancelAdd').addEventListener('click', () => dialog.close());
+    document.getElementById('addForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      items.unshift({ id: crypto.randomUUID(), name: form.get('name').trim(), detail: 'Container', zone: form.get('zone'), owner: form.get('owner').trim().toUpperCase(), date: form.get('date') });
+      event.currentTarget.reset();
+      dialog.close();
+      activeFilter = 'ALL'; query = '';
+      document.getElementById('search').value = '';
+      document.querySelectorAll('.filter').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === 'ALL')));
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>
